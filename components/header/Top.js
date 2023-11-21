@@ -6,7 +6,7 @@ import { RiAccountPinCircleLine, RiArrowDropDownFill } from 'react-icons/ri';
 import Link from 'next/link';
 import Image from 'next/image';
 import UserMenu from './UserMenu';
-export default function Top() {
+export default function Top({ country }) {
   const [loggedIn, setLoggedIn] = useState(true);
   const [visible, setVisible] = useState(false);
   return (
@@ -19,13 +19,8 @@ export default function Top() {
               src="https://www.seekpng.com/png/full/270-2704243_quality-hd-good-photos-of-bangladesh-flag-bangladesh.png"
               alt="bd-flag"
             /> */}
-            <Image
-              src="https://www.seekpng.com/png/full/270-2704243_quality-hd-good-photos-of-bangladesh-flag-bangladesh.png"
-              alt=""
-              width={28}
-              height={28}
-            />
-            <span>Bangladesh / BDT</span>
+            <Image src={country.flag} alt="" width={28} height={28} />
+            <span>{country?.name} / BDT</span>
           </li>
           <li className={styles.li}>
             <MdSecurity />
