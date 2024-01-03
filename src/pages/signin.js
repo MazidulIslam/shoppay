@@ -8,13 +8,18 @@ import { Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import LoginInput from '../../components/inputs/loginInput';
 import CircledIconBtn from '../../components/buttons/circledIconBtn';
-import { getProviders, signIn } from 'next-auth/react';
+import {
+  getCsrfToken,
+  getProviders,
+  getSession,
+  signIn,
+} from 'next-auth/react';
 import Image from 'next/image';
 import axios from 'axios';
 import DotLoaderSpinner from '../../components/loaders/dotLoaders';
 import Router from 'next/router';
 
-export default function SignIn({ providers }) {
+export default function SignIn({ providers, csrfToken, callbackUrl }) {
   const [loading, setLoading] = useState(false);
   const initialValues = {
     login_email: '',
@@ -115,7 +120,7 @@ export default function SignIn({ providers }) {
       setLoading(false);
       setUser({ ...user, login_error: res?.error });
     } else {
-      return Router.push('/');
+      return Router.push(callbackUrl || '/');
     }
   };
   return (
@@ -147,7 +152,12 @@ export default function SignIn({ providers }) {
               }}
             >
               {(form) => (
-                <Form>
+                <Form method="post" action="/api/auth/signin/email">
+                  <input
+                    type="hidden"
+                    name="csrfToken"
+                    defaultValue={csrfToken}
+                  />
                   <LoginInput
                     type="text"
                     name="login_email"
@@ -169,7 +179,7 @@ export default function SignIn({ providers }) {
                     )}
                   </div>
                   <div className={styles.forgot}>
-                    <Link href="/forgot">Forgot password ?</Link>
+                    <Link href="auth/forgot">Forgot password ?</Link>
                   </div>
                 </Form>
               )}
@@ -177,23 +187,28 @@ export default function SignIn({ providers }) {
             <div className={styles.login__socials}>
               <span className={styles.or}>Or Continue with</span>
               <div className={styles.login__socials_wrap}>
-                {providers.map((provider) => (
-                  <div key={provider.name}>
-                    <button
-                      className={styles.social__btn}
-                      onClick={() => signIn(provider.id)}
-                    >
-                      {/* <img src={`/icons/${provider.name}.png`} /> */}
-                      <Image
-                        src={`/icons/${provider.name}.png`}
-                        alt=""
-                        width={36}
-                        height={36}
-                      />
-                      Sign in with {provider.name}
-                    </button>
-                  </div>
-                ))}
+                {providers.map((provider) => {
+                  if (provider.name == 'Credentials') {
+                    return;
+                  }
+                  return (
+                    <div key={provider.name}>
+                      <button
+                        className={styles.social__btn}
+                        onClick={() => signIn(provider.id)}
+                      >
+                        {/* <img src={`/icons/${provider.name}.png`} /> */}
+                        <Image
+                          src={`/icons/${provider.name}.png`}
+                          alt=""
+                          width={36}
+                          height={36}
+                        />
+                        Sign in with {provider.name}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -265,9 +280,20 @@ export default function SignIn({ providers }) {
 }
 
 export async function getServerSideProps(contex) {
+  const { req, query } = contex;
+  const session = await getSession({ req });
+  const { callbackUrl } = query;
+  if (session) {
+    return {
+      redirect: {
+        destination: callbackUrl,
+      },
+    };
+  }
+  const csrfToken = await getCsrfToken(contex);
   const providers = Object.values(await getProviders());
   // console.log(providers);
   return {
-    props: { providers },
+    props: { providers, csrfToken, callbackUrl },
   };
 }
